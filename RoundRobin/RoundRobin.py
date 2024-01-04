@@ -26,20 +26,24 @@ class RoundRobinScheduler:
         return self.proceso_actual
 
     def resolver_proceso(self):
-        if self.proceso_actual:            
+        if self.proceso_actual:
             self.tiempo_restante -= 1
             tiempo_ejecucion = time.time() - self.tiempo_inicio_proceso
 
-            if tiempo_ejecucion >= self.quantum:  
+            if tiempo_ejecucion >= self.quantum:
                 # El proceso ha consumido el quantum completo
-                self.queue.append(self.proceso_actual)                
-                self.procesos_atendidos[-1] = (self.proceso_actual[0], self.proceso_actual[1], tiempo_ejecucion, 'Espera')                                
+                self.queue.append(self.proceso_actual)
+                self.procesos_atendidos[-1] = (self.proceso_actual[0], self.proceso_actual[1], tiempo_ejecucion, 'Espera')
                 self.proceso_actual = None
             elif self.tiempo_restante == 0:
                 # El quantum ha terminado, pero el proceso no ha consumido el quantum completo
                 self.queue.append(self.proceso_actual)
                 self.procesos_atendidos[-1] = (self.proceso_actual[0], self.proceso_actual[1], tiempo_ejecucion, 'Terminado')
                 self.proceso_actual = None
+
+                # Simular el tiempo de ejecución del proceso durante el quantum
+                tiempo_restante_decimal = tiempo_ejecucion % 1
+                time.sleep(tiempo_restante_decimal)
 
 def obtener_procesos():
     procesos = psutil.process_iter(['pid', 'name', 'cpu_percent'])
@@ -49,7 +53,10 @@ def obtener_procesos():
 def round_robin():
     proceso_actual = scheduler.siguiente_proceso()
     if proceso_actual:
-        tabla_data = tabulate([proceso_actual], headers=encabezados, tablefmt="pretty")
+        # Obtener el tiempo restante
+        tiempo_restante = scheduler.tiempo_restante if scheduler.tiempo_restante > 0 else scheduler.quantum
+
+        tabla_data = tabulate([(proceso_actual[0], proceso_actual[1], tiempo_restante)], headers=encabezados1, tablefmt="pretty")
         text_widget.config(state=tk.NORMAL)
         text_widget.delete(1.0, tk.END)
         text_widget.insert(tk.END, tabla_data)
@@ -70,7 +77,8 @@ def salir():
 root = tk.Tk()
 root.title("Visualizador de Procesos - Round Robin")
 
-encabezados = ["PID", "Nombre", "Tiempo Rafaga", "Estado"]
+encabezados1 = ["PID", "Nombre", "Quantum"]
+encabezados2 = ["PID", "Nombre", "Tiempo Restante", "Estado"]
 
 scrollbar = tk.Scrollbar(root)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -91,14 +99,14 @@ file_menu.add_separator()
 file_menu.add_command(label="Salir", command=salir)
 
 procesos_info = obtener_procesos()
-quantum = 1
+quantum = 5
 scheduler = RoundRobinScheduler(procesos_info, quantum)
 
 frame = ttk.Frame(root)
 frame.pack(padx=10, pady=10, expand=True, fill=tk.BOTH)
 
-tree = ttk.Treeview(frame, columns=encabezados, show='headings')
-for col in encabezados:
+tree = ttk.Treeview(frame, columns=encabezados2, show='headings')
+for col in encabezados2:
     tree.heading(col, text=col)
     tree.column(col, width=50, anchor='center')
 
