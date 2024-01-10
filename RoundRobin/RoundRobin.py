@@ -3,10 +3,6 @@ import tkinter as tk
 from tkinter import ttk
 import time
 
-def accion():
-    # La acción que quieres realizar después de esperar un tiempo
-    print("¡Acción realizada!")
-
 class RoundRobinScheduler:
     def __init__(self, procesos_info, quantum):
         self.procesos_info = procesos_info
@@ -68,17 +64,28 @@ def obtener_procesos():
     procesos_info = [(p.info['pid'], p.info['name'], p.info['cpu_percent']) for p in procesos]
     return procesos_info
 
+def actualizar_procesos():
+    # Limpiar la tabla
+    tree_procesos.delete(*tree_procesos.get_children())
 
-def round_robin():
-    proceso_actual = scheduler.siguiente_proceso()
-    if proceso_actual:
-        scheduler.resolver_proceso()
-        actualizar_procesos_atendidos()
+    # Obtener todos los procesos
+    procesos_info = obtener_procesos()
+
+    # Llenar la tabla con la información de todos los procesos
+    for pid, nombre, cpu_percent in procesos_info:
+        tree_procesos.insert('', 'end', values=(pid, nombre, cpu_percent))
 
 def actualizar_procesos_atendidos():
     tree.delete(*tree.get_children())
     for pid, nombre, tiempo_rafaga, tiempo_restante, estado in scheduler.procesos_atendidos:        
         tree.insert('', 'end', values=(pid, nombre, tiempo_rafaga, tiempo_restante, estado))
+
+def round_robin():
+    proceso_actual = scheduler.siguiente_proceso()
+    if proceso_actual:
+        scheduler.resolver_proceso()
+        actualizar_procesos()
+        actualizar_procesos_atendidos()
 
 def salir():
     root.destroy()
@@ -99,6 +106,15 @@ file_menu.add_command(label="Salir", command=salir)
 frame = ttk.Frame(root)
 frame.pack(padx=10, pady=10, expand=True, fill=tk.BOTH)
 
+# Tabla para mostrar todos los procesos
+tree_procesos = ttk.Treeview(frame, columns=["PID", "Nombre", "CPU Percent"], show='headings')
+for col in ["PID", "Nombre", "CPU Percent"]:
+    tree_procesos.heading(col, text=col)
+    tree_procesos.column(col, width=100, anchor='center')
+
+tree_procesos.pack(expand=True, fill=tk.BOTH)
+
+# Tabla para mostrar los procesos atendidos por Round Robin
 tree = ttk.Treeview(frame, columns=["PID", "Nombre", "Tiempo Rafaga", "Tiempo Restante", "Estado"], show='headings')
 for col in ["PID", "Nombre", "Tiempo Rafaga", "Tiempo Restante", "Estado"]:
     tree.heading(col, text=col)
