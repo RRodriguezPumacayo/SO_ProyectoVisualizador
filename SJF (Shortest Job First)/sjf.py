@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            os.system('clear')  # Limpiar la consola (Linux)
+            os.system('clear')
 
             procesos_actuales = obtener_procesos()
 
@@ -69,6 +69,6 @@ if __name__ == "__main__":
                 else:
                     print("No hay procesos en ejecución.")
 
-            time.sleep(0.5)  # Actualizar cada segundo
+            time.sleep(1)
     except KeyboardInterrupt:
         print("\nVisualización terminada.")
