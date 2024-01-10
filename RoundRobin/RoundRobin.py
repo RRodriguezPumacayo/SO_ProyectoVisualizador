@@ -32,39 +32,37 @@ class RoundRobinScheduler:
 
             # Acumular el tiempo de ejecución total del proceso
             self.tiempo_total_ejecucion[self.proceso_actual[0]] += tiempo_ejecucion
-            
-            # Significa que el proceso terminó durante el proceso del quantum
-            tiempo_restante = self.quantum - self.tiempo_total_ejecucion[self.proceso_actual[0]]
 
-            if  tiempo_ejecucion - quantum < 0:
-                # El proceso ha consumido el quantum completo
+            # Significa que el proceso terminó durante el proceso del quantum            
+            tiempo_restante = quantum - tiempo_ejecucion
+
+            if tiempo_restante < 0:
+                # El proceso es mayor al quantum
                 self.queue.append(self.proceso_actual)
                 self.procesos_atendidos[-1] = (
                     self.proceso_actual[0], 
                     self.proceso_actual[1], 
-                    tiempo_restante, 
-                    tiempo_ejecucion,  # Nuevo: tiempo de ráfaga
-                    'Espera' if tiempo_restante < 0 else 'Terminado'  # Ajuste en el estado
+                    tiempo_ejecucion,   # Tiempo de ráfaga
+                    tiempo_restante,
+                    'Espera'
                 )
                 self.proceso_actual = None
-            elif tiempo_ejecucion - quantum < 0:
-                # El quantum ha terminado, pero el proceso no ha consumido el quantum completo
+            else:                            
+                # El proceso se consume durante el tiempo del quantum
                 self.queue.append(self.proceso_actual)
                 self.procesos_atendidos[-1] = (
                     self.proceso_actual[0], 
                     self.proceso_actual[1], 
-                    0, 
-                    tiempo_ejecucion,  # Nuevo: tiempo de ráfaga
+                    tiempo_ejecucion,  
+                    0,  
                     'Terminado'
                 )
                 self.proceso_actual = None
 
                 # Programar la próxima iteración del Round Robin después de un cierto tiempo
-                root.after(int(tiempo_restante * 1000), round_robin)
+            root.after(int(tiempo_restante * 1000), round_robin)
 
-    def obtener_tiempo_total_ejecucion(self):
-        return self.tiempo_total_ejecucion
-    
+
 def obtener_procesos():
     procesos = psutil.process_iter(['pid', 'name', 'cpu_percent'])
     procesos_info = [(p.info['pid'], p.info['name'], p.info['cpu_percent']) for p in procesos]
@@ -79,8 +77,8 @@ def round_robin():
 
 def actualizar_procesos_atendidos():
     tree.delete(*tree.get_children())
-    for pid, nombre, tiempo_rafaga, tiempo_restante, estado in scheduler.procesos_atendidos:
-        tree.insert('', 'end', values=(pid, nombre, tiempo_restante, tiempo_rafaga, estado))
+    for pid, nombre, tiempo_rafaga, tiempo_restante, estado in scheduler.procesos_atendidos:        
+        tree.insert('', 'end', values=(pid, nombre, tiempo_rafaga, tiempo_restante, estado))
 
 def salir():
     root.destroy()
@@ -111,9 +109,5 @@ tree.pack(expand=True, fill=tk.BOTH)
 procesos_info = obtener_procesos()
 quantum = 2
 scheduler = RoundRobinScheduler(procesos_info, quantum)
-
-# Calcular tiempo total de ejecución antes de iniciar Round Robin
-tiempo_total_ejecucion_inicial = scheduler.obtener_tiempo_total_ejecucion()
-print(f'Tiempo Total de Ejecución Inicial: {tiempo_total_ejecucion_inicial}')
 
 root.mainloop()
